@@ -35,6 +35,8 @@ class GroupSerializer(serializers.ModelSerializer):
 
 
 class FollowSerializer(serializers.ModelSerializer):
+    user = serializers.SlugField(source='user.username')
+    following = serializers.SlugField(source='following.username')
 
     class Meta:
         model = Follow
