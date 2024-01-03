@@ -2,8 +2,9 @@ from django.shortcuts import get_object_or_404
 from rest_framework import filters, permissions, status, viewsets
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.response import Response
+from rest_framework import mixins
 
-from posts.models import Comment, Follow, Group, Post
+from posts.models import Comment, Group, Post
 from .serializers import (
     CommentSerializer, FollowSerializer, GroupSerializer, PostSerializer)
 
@@ -87,43 +88,16 @@ class GroupViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
 
-class FollowViewSet(viewsets.ViewSet):
-    """
-    ViewSet для управления подписками пользователей.
-    Позволяет просматривать и создавать подписки.
-    """
-    permission_classes = [permissions.IsAuthenticated]
-    queryset = Follow.objects.all()
-    filter_backends = [filters.SearchFilter]
-    search_fields = ['following__username']
+class FollowViewSet(mixins.CreateModelMixin,
+                    mixins.ListModelMixin,
+                    viewsets.GenericViewSet):
+    serializer_class = FollowSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+    filter_backends = (filters.SearchFilter, )
+    search_fields = ('=user__username', '=following__username')
 
     def get_queryset(self):
-        """
-        Получает список подписок текущего пользователя.
-        """
-        return self.queryset.filter(user=self.request.user)
+        return self.request.user.followers.all()
 
-    def list(self, request):
-        """
-        Показывает список подписок пользователя
-        с возможностью фильтрации по имени пользователя.
-        """
-        search_param = request.GET.get('search')
-        queryset = self.get_queryset()
-
-        if search_param:
-            queryset = queryset.filter(
-                following__username__icontains=search_param)
-
-        serializer = FollowSerializer(queryset, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def create(self, request):
-        """
-        Создает новую подписку пользователя на другого пользователя.
-        """
-        serializer = FollowSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save(author=self.request.user)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
