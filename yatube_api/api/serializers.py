@@ -1,3 +1,4 @@
+from django.forms import ValidationError
 from rest_framework import serializers
 
 from posts.models import Comment, Post, Follow, Group, User
@@ -35,10 +36,30 @@ class GroupSerializer(serializers.ModelSerializer):
 
 
 class FollowSerializer(serializers.ModelSerializer):
-    user = serializers.SlugRelatedField(slug_field='username', read_only=True)
+    user = serializers.SlugRelatedField(
+        read_only=True,
+        slug_field='username',
+        default=serializers.CurrentUserDefault()
+    )
     following = serializers.SlugRelatedField(
-        slug_field='username', queryset=User.objects.all())
+        slug_field='username',
+        queryset=User.objects.all())
 
     class Meta:
         model = Follow
-        fields = ['user', 'following']
+        fields = ('user', 'following',)
+
+        validators = [
+            serializers.UniqueTogetherValidator(
+                queryset=Follow.objects.all(),
+                fields=('user', 'following',),
+                message=('Вы уже подписаны на этого пользователя')
+            )
+        ]
+
+    def validate_following(self, value):
+        if value == self.context.get('request').user:
+            raise ValidationError(
+                'Вы не можете подписаться на самого себя!'
+            )
+        return value
