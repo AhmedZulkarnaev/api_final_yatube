@@ -91,6 +91,12 @@ class GroupViewSet(viewsets.ReadOnlyModelViewSet):
 class FollowViewSet(mixins.CreateModelMixin,
                     mixins.ListModelMixin,
                     viewsets.GenericViewSet):
+    """
+    Представление для работы с подписками пользователей.
+
+    Поддерживает операции создания и получения списка подписчиков .
+    """
+
     serializer_class = FollowSerializer
     permission_classes = (permissions.IsAuthenticated,)
     filter_backends = (filters.SearchFilter, )
