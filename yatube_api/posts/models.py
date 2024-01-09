@@ -44,3 +44,13 @@ class Follow(models.Model):
         User, on_delete=models.CASCADE, related_name='followers')
     following = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name='following')
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'following'], name='вы уже подписаны.'),
+            models.CheckConstraint(
+                check=~models.Q(user=models.F('following')),
+                name='вы не можете подписатся на самого себя.'
+            )
+        ]
