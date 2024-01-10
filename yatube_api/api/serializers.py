@@ -4,6 +4,24 @@ from rest_framework import serializers
 from posts.models import Comment, Post, Follow, Group, User
 
 
+class UniqueFieldsValidator:
+    requires_context = True
+
+    def __init__(self, field_names):
+        self.field_names = field_names
+
+    def __call__(self, data, serializer_field):
+        values = set()
+        for field_name in self.field_names:
+            field_value = data.get(field_name)
+            if field_value in values:
+                raise ValidationError(
+                    f"Значение поля '{field_name}' уже было использовано."
+                )
+            values.add(field_value)
+        return data
+
+
 class PostSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
         read_only=True,
@@ -35,15 +53,6 @@ class GroupSerializer(serializers.ModelSerializer):
         fields = ('id', 'title', 'slug', 'description')
 
 
-class FollowingValidator:
-    requires_context = True
-
-    def __call__(self, value, serializer_field):
-        if value == serializer_field.context.get('request').user:
-            raise ValidationError('Вы не можете подписаться на самого себя!')
-        return value
-
-
 class FollowSerializer(serializers.ModelSerializer):
     user = serializers.SlugRelatedField(
         read_only=True,
@@ -52,8 +61,7 @@ class FollowSerializer(serializers.ModelSerializer):
     )
     following = serializers.SlugRelatedField(
         slug_field='username',
-        queryset=User.objects.all(),
-        validators=[FollowingValidator()]
+        queryset=User.objects.all()
     )
 
     class Meta:
@@ -61,6 +69,7 @@ class FollowSerializer(serializers.ModelSerializer):
         fields = ('user', 'following',)
 
         validators = [
+            UniqueFieldsValidator(['user', 'following']),
             serializers.UniqueTogetherValidator(
                 queryset=Follow.objects.all(),
                 fields=('user', 'following',),
