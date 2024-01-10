@@ -13,8 +13,7 @@ class PostViewSet(viewsets.ModelViewSet):
     """Управление объектами Post."""
     queryset = Post.objects.all()
     serializer_class = PostSerializer
-    permission_classes = [
-        IsAuthorOrReadOnly]
+    permission_classes = [IsAuthorOrReadOnly,]
     pagination_class = LimitOffsetPagination
 
     def perform_create(self, serializer):
@@ -25,8 +24,7 @@ class PostViewSet(viewsets.ModelViewSet):
 class CommentViewSet(viewsets.ModelViewSet):
     """Управление объектами Comment."""
     serializer_class = CommentSerializer
-    permission_classes = [
-        IsAuthorOrReadOnly]
+    permission_classes = [IsAuthorOrReadOnly,]
 
     def get_post_object_or_404(self):
         """Получает объект Post или возвращает ошибку 404."""
